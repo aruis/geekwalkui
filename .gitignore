@@ -1,0 +1,6 @@
+.dart_tool
+.idea
+androidgit remote add origin https://github.com/aruis/geekwalkui.git
+ios
+build
+*.iml
