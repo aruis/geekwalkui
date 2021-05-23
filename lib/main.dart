@@ -48,8 +48,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  _GeekWalk _form = _GeekWalk();
+
   late TextEditingController _controller = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  String port = "";
 
   void getHttp() async {
     try {
@@ -61,18 +65,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _submit() {
-    int port = int.parse(_controller.text);
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      print(_form.port);
+    }
 
-    print(port);
     getHttp();
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+    setState(() {});
   }
 
   @override
@@ -92,23 +91,42 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Row(
-              // mainAxisSize: MainAxisSize.max,
-              children: [
-                Text("端口"),
-                SizedBox(
-                  width: 100,
-                  child: TextField(
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    controller: _controller,
-                  ),
-                )
-              ],
-            )
-          ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              TextFormField(
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration:
+                      InputDecoration(hintText: '端口', labelText: '请输入端口号'),
+                  validator: (value) {
+                    if (value!.length == 0) {
+                      return '请输入端口号';
+                    }
+
+                    return null;
+                  },
+                  onSaved: (value) {
+                    if (value != null) {
+                      _form.port = int.parse(value);
+                    }
+                  }),
+              // Row(
+              //   // mainAxisSize: MainAxisSize.max,
+              //   children: [
+              //     Text("端口"),
+              //     SizedBox(
+              //       width: 100,
+              //       child: TextField(
+              //         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              //         controller: _controller,
+              //       ),
+              //     )
+              //   ],
+              // )
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -118,4 +136,23 @@ class _MyHomePageState extends State<MyHomePage> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+}
+
+class _GeekWalk {
+  late int port;
+  late List<_GeekWalkFrontend> frontend;
+  late List<_GeekWalkBackend> backend;
+}
+
+class _GeekWalkFrontend {
+  late String prefix;
+  late String dir;
+  late String reroute404;
+  late bool cachingEnabled;
+  late int maxAgeSeconds;
+}
+
+class _GeekWalkBackend {
+  late String prefix;
+  late String upstream;
 }
