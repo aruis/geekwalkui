@@ -64,6 +64,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _addFrontend() {
+    setState(() {
+      _form.frontend.add(new _GeekWalkFrontend());
+    });
+  }
+
   void _submit() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -91,41 +97,82 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              TextFormField(
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration:
-                      InputDecoration(hintText: '端口', labelText: '请输入端口号'),
-                  validator: (value) {
-                    if (value!.length == 0) {
-                      return '请输入端口号';
-                    }
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                TextFormField(
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration:
+                        InputDecoration(hintText: '端口', labelText: '请输入端口号'),
+                    validator: (value) {
+                      if (value!.length == 0) {
+                        return '请输入端口号';
+                      }
 
-                    return null;
-                  },
-                  onSaved: (value) {
-                    if (value != null) {
-                      _form.port = int.parse(value);
-                    }
-                  }),
-              // Row(
-              //   // mainAxisSize: MainAxisSize.max,
-              //   children: [
-              //     Text("端口"),
-              //     SizedBox(
-              //       width: 100,
-              //       child: TextField(
-              //         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              //         controller: _controller,
-              //       ),
-              //     )
-              //   ],
-              // )
-            ],
+                      return null;
+                    },
+                    onSaved: (value) {
+                      if (value != null) {
+                        _form.port = int.parse(value);
+                      }
+                    }),
+                ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.all(8),
+                    itemCount: _form.frontend.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return Column(
+                        children: [
+                          TextFormField(
+                            decoration: InputDecoration(labelText: '前缀'),
+                            validator: (value) {
+                              if (!value!.startsWith("/")) {
+                                return "请以/开头";
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _form.frontend[index].prefix = value!;
+                            },
+                          ),
+                          TextFormField(
+                              decoration: InputDecoration(labelText: '文件路径')),
+                          TextFormField(
+                              decoration: InputDecoration(labelText: '404重路由')),
+                          Switch(
+                            value: _form.frontend[index].cachingEnabled,
+                            onChanged: (value) {
+                              setState(() {
+                                _form.frontend[index].cachingEnabled = value;
+                              });
+                            },
+                          ),
+                          TextFormField(
+                              decoration:
+                                  InputDecoration(labelText: '缓存时间（秒）')),
+                        ],
+                      );
+                    }),
+                TextButton(onPressed: _addFrontend, child: Text("追加前端"))
+
+                // Row(
+                //   // mainAxisSize: MainAxisSize.max,
+                //   children: [
+                //     Text("端口"),
+                //     SizedBox(
+                //       width: 100,
+                //       child: TextField(
+                //         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                //         controller: _controller,
+                //       ),
+                //     )
+                //   ],
+                // )
+              ],
+            ),
           ),
         ),
       ),
@@ -140,7 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
 class _GeekWalk {
   late int port;
-  late List<_GeekWalkFrontend> frontend;
+  late List<_GeekWalkFrontend> frontend = [];
   late List<_GeekWalkBackend> backend;
 }
 
@@ -148,7 +195,7 @@ class _GeekWalkFrontend {
   late String prefix;
   late String dir;
   late String reroute404;
-  late bool cachingEnabled;
+  late bool cachingEnabled = false;
   late int maxAgeSeconds;
 }
 
