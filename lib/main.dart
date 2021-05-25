@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
 
 void main() {
   runApp(MyApp());
@@ -76,6 +77,10 @@ class _MyHomePageState extends State<MyHomePage> {
       print(_form.port);
     }
 
+    String str = json.encode(_form);
+
+    print(str);
+
     getHttp();
     setState(() {});
   }
@@ -94,9 +99,8 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -124,36 +128,73 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: const EdgeInsets.all(8),
                     itemCount: _form.frontend.length,
                     itemBuilder: (BuildContext context, int index) {
-                      return Column(
-                        children: [
-                          TextFormField(
-                            decoration: InputDecoration(labelText: '前缀'),
-                            validator: (value) {
-                              if (!value!.startsWith("/")) {
-                                return "请以/开头";
-                              }
-                              return null;
-                            },
-                            onSaved: (value) {
-                              _form.frontend[index].prefix = value!;
-                            },
+                      return Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Container(
+                          padding: EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                              border: Border.all(color: Colors.black26)),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    TextFormField(
+                                      decoration:
+                                          InputDecoration(labelText: '前缀'),
+                                      validator: (value) {
+                                        if (!value!.startsWith("/")) {
+                                          return "请以/开头";
+                                        }
+                                        return null;
+                                      },
+                                      onSaved: (value) {
+                                        _form.frontend[index].prefix = value!;
+                                      },
+                                    ),
+                                    TextFormField(
+                                      decoration:
+                                          InputDecoration(labelText: '文件路径'),
+                                      onSaved: (value) {
+                                        _form.frontend[index].dir = value!;
+                                      },
+                                    ),
+                                    TextFormField(
+                                      decoration:
+                                          InputDecoration(labelText: '404重路由'),
+                                      onSaved: (value) {
+                                        _form.frontend[index].reroute404 =
+                                            value!;
+                                      },
+                                    ),
+                                    TextFormField(
+                                      decoration:
+                                          InputDecoration(labelText: '缓存时间（秒）'),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly
+                                      ],
+                                      onSaved: (value) {
+                                        if (value!.isNotEmpty) {
+                                          _form.frontend[index].maxAgeSeconds =
+                                              int.parse(value);
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: _form.frontend[index].cachingEnabled,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _form.frontend[index].cachingEnabled =
+                                        value;
+                                  });
+                                },
+                              ),
+                            ],
                           ),
-                          TextFormField(
-                              decoration: InputDecoration(labelText: '文件路径')),
-                          TextFormField(
-                              decoration: InputDecoration(labelText: '404重路由')),
-                          Switch(
-                            value: _form.frontend[index].cachingEnabled,
-                            onChanged: (value) {
-                              setState(() {
-                                _form.frontend[index].cachingEnabled = value;
-                              });
-                            },
-                          ),
-                          TextFormField(
-                              decoration:
-                                  InputDecoration(labelText: '缓存时间（秒）')),
-                        ],
+                        ),
                       );
                     }),
                 TextButton(onPressed: _addFrontend, child: Text("追加前端"))
@@ -188,7 +229,11 @@ class _MyHomePageState extends State<MyHomePage> {
 class _GeekWalk {
   late int port;
   late List<_GeekWalkFrontend> frontend = [];
-  late List<_GeekWalkBackend> backend;
+
+  // late List<_GeekWalkBackend> backend;
+
+  Map<String, dynamic> toJson() =>
+      {'port': port, "frontend": frontend.map((c) => c.toJson()).toList()};
 }
 
 class _GeekWalkFrontend {
@@ -197,6 +242,14 @@ class _GeekWalkFrontend {
   late String reroute404;
   late bool cachingEnabled = false;
   late int maxAgeSeconds;
+
+  Map<String, dynamic> toJson() => {
+        'prefix': prefix,
+        'dir': dir,
+        'reroute404': reroute404,
+        'cachingEnabled': cachingEnabled,
+        'maxAgeSeconds': maxAgeSeconds,
+      };
 }
 
 class _GeekWalkBackend {
