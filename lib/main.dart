@@ -1,7 +1,8 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
 
 void main() {
   runApp(MyApp());
@@ -50,6 +51,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   _GeekWalk _form = _GeekWalk();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   late TextEditingController _controller = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -71,18 +73,25 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      print(_form.port);
     }
 
     String str = json.encode(_form);
+    try {
+      await Dio().post('http://127.0.0.1:8888/config', data: str);
+      showMessage("设置成功");
+    } on DioError catch (err) {
+      showMessage(err.response!.data.toString());
+    }
+  }
 
-    print(str);
-
-    getHttp();
-    setState(() {});
+  void showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      duration: Duration(seconds: 3),
+    ));
   }
 
   @override
@@ -94,6 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
@@ -110,12 +120,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 TextFormField(
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration:
-                        InputDecoration(hintText: '端口', labelText: '请输入端口号'),
+                    InputDecoration(hintText: '端口', labelText: '请输入端口号'),
                     validator: (value) {
                       if (value!.length == 0) {
                         return '请输入端口号';
                       }
-
                       return null;
                     },
                     onSaved: (value) {
@@ -141,7 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   children: [
                                     TextFormField(
                                       decoration:
-                                          InputDecoration(labelText: '前缀'),
+                                      InputDecoration(labelText: '前缀'),
                                       validator: (value) {
                                         if (!value!.startsWith("/")) {
                                           return "请以/开头";
@@ -154,22 +163,22 @@ class _MyHomePageState extends State<MyHomePage> {
                                     ),
                                     TextFormField(
                                       decoration:
-                                          InputDecoration(labelText: '文件路径'),
+                                      InputDecoration(labelText: '文件路径'),
                                       onSaved: (value) {
                                         _form.frontend[index].dir = value!;
                                       },
                                     ),
                                     TextFormField(
                                       decoration:
-                                          InputDecoration(labelText: '404重路由'),
+                                      InputDecoration(labelText: '404重路由'),
                                       onSaved: (value) {
                                         _form.frontend[index].reroute404 =
-                                            value!;
+                                        value!;
                                       },
                                     ),
                                     TextFormField(
                                       decoration:
-                                          InputDecoration(labelText: '缓存时间（秒）'),
+                                      InputDecoration(labelText: '缓存时间（秒）'),
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly
                                       ],
@@ -197,7 +206,74 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       );
                     }),
-                TextButton(onPressed: _addFrontend, child: Text("追加前端"))
+                TextButton(onPressed: _addFrontend, child: Text("追加前端")),
+                ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.all(8),
+                    itemCount: _form.backend.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Container(
+                          padding: EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                              border: Border.all(color: Colors.black26)),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    TextFormField(
+                                      decoration:
+                                      InputDecoration(labelText: '前缀'),
+                                      validator: (value) {
+                                        if (!value!.startsWith("/")) {
+                                          return "请以/开头";
+                                        }
+                                        return null;
+                                      },
+                                      onSaved: (value) {
+                                        _form.backend[index].prefix = value!;
+                                      },
+                                    ),
+                                    TextFormField(
+                                      decoration:
+                                      InputDecoration(labelText: '上游地址'),
+                                      validator: (value) {
+                                        // if(value == null || !value.startsWith("http://"))
+
+                                        if (!((value != null &&
+                                            value.startsWith(
+                                                "http://")) ||
+                                            (value != null &&
+                                                value
+                                                    .startsWith("https://"))
+                                            // value.startsWith("https://")
+
+                                        )) {
+                                          return "请以http://或https://开头";
+                                        }
+                                        return null;
+                                      },
+                                      onSaved: (value) {
+                                        _form.backend[index].upstream = value!;
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _form.backend.add(new _GeekWalkBackend());
+                      });
+                    },
+                    child: Text("追加代理"))
 
                 // Row(
                 //   // mainAxisSize: MainAxisSize.max,
@@ -219,8 +295,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _submit,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
+        tooltip: '提交',
+        child: Icon(Icons.save),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
@@ -228,12 +304,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
 class _GeekWalk {
   late int port;
-  late List<_GeekWalkFrontend> frontend = [];
-
-  // late List<_GeekWalkBackend> backend;
+  List<_GeekWalkFrontend> frontend = [];
+  List<_GeekWalkBackend> backend = [];
 
   Map<String, dynamic> toJson() =>
-      {'port': port, "frontend": frontend.map((c) => c.toJson()).toList()};
+      {
+        'port': port,
+        "frontend": frontend.map((c) => c.toJson()).toList(),
+        "backend": backend.map((c) => c.toJson()).toList(),
+      };
 }
 
 class _GeekWalkFrontend {
@@ -243,7 +322,8 @@ class _GeekWalkFrontend {
   late bool cachingEnabled = false;
   late int maxAgeSeconds;
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() =>
+      {
         'prefix': prefix,
         'dir': dir,
         'reroute404': reroute404,
@@ -255,4 +335,6 @@ class _GeekWalkFrontend {
 class _GeekWalkBackend {
   late String prefix;
   late String upstream;
+
+  Map<String, dynamic> toJson() => {'prefix': prefix, 'upstream': upstream};
 }
